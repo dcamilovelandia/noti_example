@@ -1,5 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.notification_test">
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
    <application
         android:label="notification_test"
         android:name="${applicationName}"
@@ -43,6 +44,5 @@
        <meta-data
            android:name="com.google.firebase.messaging.default_notification_color"
            android:resource="@drawable/ic_launcher" />
-
     </application>
 </manifest>
