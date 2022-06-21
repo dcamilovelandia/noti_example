@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:awesome_notifications/awesome_notifications.dart';
@@ -8,22 +9,21 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:notification_test/archive_page.dart';
 import 'package:notification_test/firebase_messaging_response.dart';
+import 'package:notification_test/firebase_options.dart';
 import 'package:notification_test/notification.dart';
 import 'package:notification_test/reply_page.dart';
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
+  if (Platform.isIOS) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } else {
+    await Firebase.initializeApp();
+  }
   await Notifications.notificationInitialize();
-  await Firebase.initializeApp();
-  FirebaseMessaging.onBackgroundMessage(backgroundNotification);
-  // AwesomeNotifications().actionStream.listen((notification) {
-  //   print('action stream ${notification.buttonKeyPressed}');
-  //   if(notification.buttonKeyPressed.toLowerCase() == 'reply') {
-  //     Get.to(ReplyPage());
-  //   } else {
-  //     Get.to(ArchivePage());
-  //   }
-  // });
+
   runApp(const MyApp());
 }
 
@@ -38,20 +38,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    FirebaseMessaging.instance.getToken().then((value) {
-      print('FMC: $value');
-      AwesomeNotifications().actionStream.listen((notification) {
-        print('action stream ${notification.buttonKeyPressed}');
-        if(notification.buttonKeyPressed.toLowerCase() == 'reply') {
-          Get.to(ReplyPage());
-        } else {
-          Get.to(ArchivePage());
-        }
-      });
-    });
-
-    FirebaseMessaging.instance.subscribeToTopic('basic_channel');
-    FirebaseMessaging.onMessage.listen(backgroundNotification);
+    Notifications.initNotifications();
   }
   @override
   Widget build(BuildContext context) {
@@ -70,17 +57,28 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    AwesomeNotifications().createdStream.listen((notification) {
+    /*AwesomeNotifications().createdStream.listen((notification) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Notification Created on ${notification.channelKey}'),
         ),
       );
-    });
+    });*/
     return Scaffold(
       backgroundColor: Colors.white,
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
+        onPressed: () async{
+          await AwesomeNotifications().createNotification(
+              content: NotificationContent(
+                id: Random().hashCode,
+                channelKey: 'basic_channel',
+                title:'title',
+                body: 'body',
+                fullScreenIntent: true,
+                displayOnBackground: true,
+                displayOnForeground: true,
+              )
+          );
         },
       ),
     );
