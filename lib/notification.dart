@@ -4,7 +4,10 @@ import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:notification_test/archive_page.dart';
 import 'package:notification_test/firebase_messaging_response.dart';
+import 'package:notification_test/reply_page.dart';
 
 class Notifications {
   static notificationInitialize() async{
@@ -19,29 +22,82 @@ class Notifications {
             channelDescription: 'Notification channel for basic tests',
             defaultColor: const Color(0xFF9D50DD),
             ledColor: Colors.white,
-            importance: NotificationImportance.High,
+            importance: NotificationImportance.Max,
             icon: 'resource://drawable/ic_launcher',
+            playSound: true,
+            channelShowBadge: true,
+            criticalAlerts: true,
+            enableVibration: true,
+
           ),
         ],
         channelGroups: [
           NotificationChannelGroup(channelGroupkey: 'basic_tests', channelGroupName: 'Basic tests'),
-          NotificationChannelGroup(channelGroupkey: 'category_tests', channelGroupName: 'Category tests'),
-          NotificationChannelGroup(channelGroupkey: 'image_tests', channelGroupName: 'Images tests'),
-          NotificationChannelGroup(channelGroupkey: 'schedule_tests', channelGroupName: 'Schedule tests'),
-          NotificationChannelGroup(channelGroupkey: 'chat_tests', channelGroupName: 'Chat tests'),
-          NotificationChannelGroup(channelGroupkey: 'channel_tests', channelGroupName: 'Channel tests'),
-          NotificationChannelGroup(channelGroupkey: 'sound_tests', channelGroupName: 'Sound tests'),
-          NotificationChannelGroup(channelGroupkey: 'vibration_tests', channelGroupName: 'Vibration tests'),
-          NotificationChannelGroup(channelGroupkey: 'privacy_tests', channelGroupName: 'Privacy tests'),
-          NotificationChannelGroup(channelGroupkey: 'layout_tests', channelGroupName: 'Layout tests'),
-          NotificationChannelGroup(channelGroupkey: 'grouping_tests', channelGroupName: 'Grouping tests'),
-          NotificationChannelGroup(channelGroupkey: 'media_player_tests', channelGroupName: 'Media Player tests')
-
         ],
         debug: true
     );
+    FirebaseMessaging.onBackgroundMessage(backgroundNotification);
   }
 
+  static requestPermission() async{
+    AwesomeNotifications().isNotificationAllowed().then(
+          (isAllowed) {
+        if (!isAllowed) {
+          Get.dialog(AlertDialog(
+            title: const Text('Allow Notifications'),
+            content: const Text('Our app would like to send you notifications'),
+            actions: [
+              TextButton(
+                onPressed: () => Get.back(),
+                child: const Text(
+                  'Don\'t Allow',
+                  style: TextStyle(color: Colors.grey, fontSize: 18),
+                ),
+              ),
+              TextButton(
+                onPressed: () => AwesomeNotifications()
+                    .requestPermissionToSendNotifications()
+                    .then((_) => Get.back()),
+                child: const Text(
+                  'Allow',
+                  style: TextStyle(
+                    color: Colors.teal,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ));
+        }
+      },
+    );
+  }
+
+  static listenNotificationAction() async{
+    AwesomeNotifications().actionStream.listen((notification) {
+      print('action stream ${notification.buttonKeyPressed}');
+      if(notification.buttonKeyPressed.toLowerCase() == 'reply') {
+        Get.to(() => const ReplyPage());
+      } else {
+        Get.to(() => const ArchivePage());
+      }
+    });
+  }
+
+  static getFmcToken() async{
+    FirebaseMessaging.instance.getToken().then((value) {
+      print('FMC: $value');
+    });
+  }
+
+  static initNotifications() async{
+    requestPermission();
+    listenNotificationAction();
+    getFmcToken();
+    FirebaseMessaging.instance.subscribeToTopic('basic_channel');
+    FirebaseMessaging.onMessage.listen(backgroundNotification);
+  }
 }
 
 Future backgroundNotification(RemoteMessage message) async{
@@ -58,6 +114,7 @@ Future backgroundNotification(RemoteMessage message) async{
           bigPicture: response.content!.bigPicture,
           fullScreenIntent: true,
           notificationLayout: NotificationLayout.BigPicture,
+
           displayOnBackground: true,
           displayOnForeground: true,
         )
@@ -77,9 +134,10 @@ Future backgroundNotification(RemoteMessage message) async{
       actionButtons: [
         ...response.actionButtons!.map((button) => NotificationActionButton(
           key: button.key!,
-          label: button.label!,
+          label: button.label!
         ))
       ],
+
     );
   }
 }
